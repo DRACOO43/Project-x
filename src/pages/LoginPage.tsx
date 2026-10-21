@@ -17,19 +17,21 @@ export const LoginPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please provide both email and password.');
+    if (!email.trim() || !password.trim()) {
+      setError('Please provide your email or username and password.');
       return;
     }
 
     setError(null);
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const result = await login(email.trim(), password.trim());
     setIsLoading(false);
 
-    if (success) {
+    if (result.success) {
       navigate(from, { replace: true });
+    } else if (result.error) {
+      setError(result.error);
     }
   };
 
@@ -70,16 +72,16 @@ export const LoginPage: React.FC = () => {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Email Address
+                Email or Username
               </label>
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
+                  placeholder="e.g. admin or name@company.com"
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>

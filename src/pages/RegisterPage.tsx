@@ -10,29 +10,31 @@ export const RegisterPage: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<'team_member' | 'project_manager'>('team_member');
+  const [role, setRole] = useState<'team_member' | 'project_manager' | 'admin'>('team_member');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email || !password) {
+    if (!name.trim() || !email.trim() || !password.trim()) {
       setError('Please fill in all required fields.');
       return;
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    if (password.length < 3) {
+      setError('Password must be at least 3 characters.');
       return;
     }
 
     setError(null);
     setIsLoading(true);
 
-    const success = await register(name, email, password, role);
+    const result = await register(name.trim(), email.trim(), password.trim(), role);
     setIsLoading(false);
 
-    if (success) {
+    if (result.success) {
       navigate('/dashboard', { replace: true });
+    } else if (result.error) {
+      setError(result.error);
     }
   };
 
@@ -88,11 +90,11 @@ export const RegisterPage: React.FC = () => {
               <div className="relative">
                 <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                 <input
-                  type="email"
+                  type="text"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="maya@company.com"
+                  placeholder="e.g. maya@company.com or maya"
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>
@@ -107,10 +109,10 @@ export const RegisterPage: React.FC = () => {
                 <input
                   type="password"
                   required
-                  minLength={6}
+                  minLength={3}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 6 characters"
+                  placeholder="At least 3 characters"
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 text-slate-900 dark:text-white focus:outline-none transition-all"
                 />
               </div>
@@ -118,37 +120,46 @@ export const RegisterPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                Initial Account Role
+                Choose Your Role
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={() => setRole('team_member')}
-                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                  className={`p-2 rounded-xl border text-left transition-all ${
                     role === 'team_member'
-                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
+                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
                       : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <span className="block text-xs font-bold">Team Member</span>
-                  <span className="block text-[10px] text-slate-400">View & track assigned tasks</span>
+                  <span className="block text-xs font-bold text-emerald-600 dark:text-emerald-400">Member</span>
+                  <span className="block text-[10px] text-slate-400">Track tasks</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setRole('project_manager')}
-                  className={`p-2.5 rounded-xl border text-left transition-all ${
+                  className={`p-2 rounded-xl border text-left transition-all ${
                     role === 'project_manager'
-                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300'
+                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
                       : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                   }`}
                 >
-                  <span className="block text-xs font-bold">Project Manager</span>
-                  <span className="block text-[10px] text-slate-400">Create & lead team projects</span>
+                  <span className="block text-xs font-bold text-blue-600 dark:text-blue-400">Manager</span>
+                  <span className="block text-[10px] text-slate-400">Lead projects</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole('admin')}
+                  className={`p-2 rounded-xl border text-left transition-all ${
+                    role === 'admin'
+                      ? 'border-blue-600 bg-blue-50/50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 ring-2 ring-blue-500/20'
+                      : 'border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <span className="block text-xs font-bold text-purple-600 dark:text-purple-400">Admin</span>
+                  <span className="block text-[10px] text-slate-400">Full control</span>
                 </button>
               </div>
-              <p className="text-[10px] text-slate-400 mt-1.5">
-                Note: Administrator accounts can only be designated by existing admins or system bootstrap.
-              </p>
             </div>
 
             <button

@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { dataStore } from '../services/dataStore.ts';
 import { AuthRequest } from '../middleware/auth.ts';
+import { UserRole } from '../models/User.ts';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'smart_platform_jwt_secret_dev_key_2026';
 const JWT_EXPIRES_IN = '7d';
@@ -15,23 +16,53 @@ export const register = async (req: Request, res: Response, next: NextFunction):
   try {
     const { name, email, password, role } = req.body;
 
-    const existingUser = await dataStore.findUserByEmail(email);
+    const normalizedEmail = (email || '').toLowerCase().trim();
+    const existingUser = await dataStore.findUserByEmail(normalizedEmail, true);
     if (existingUser) {
+      // Check if password matches existing account to seamlessly log them in
+      const isMatch = await bcrypt.compare(password, existingUser.passwordHash);
+      if (isMatch) {
+        const token = generateToken(existingUser._id.toString(), existingUser.email, existingUser.role);
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+        res.status(200).json({
+          success: true,
+          message: 'Account recognized. Logged in successfully!',
+          token,
+          user: {
+            id: existingUser._id.toString(),
+            name: existingUser.name,
+            email: existingUser.email,
+            role: existingUser.role,
+            avatar: existingUser.avatar,
+          },
+        });
+        return;
+      }
+
       res.status(409).json({
         success: false,
-        message: 'A user with this email address is already registered.',
+        message: 'This email is already registered. Please sign in with your password or use another email.',
       });
       return;
     }
 
-    // Role safety check: Public registrations cannot grant admin rights
-    // Default to 'team_member' or 'project_manager'
-    const assignedRole = role === 'project_manager' ? 'project_manager' : 'team_member';
+    // Role assignment: anyone can register as admin, project_manager, or team_member
+    let assignedRole: UserRole = 'team_member';
+    if (role === 'admin') {
+      assignedRole = 'admin';
+    } else if (role === 'project_manager') {
+      assignedRole = 'project_manager';
+    }
 
     const newUser = await dataStore.createUser({
-      name,
-      email,
-      password,
+      name: name.trim(),
+      email: normalizedEmail,
+      password: password.trim(),
       role: assignedRole,
     });
 
@@ -78,7 +109,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     if (!user) {
       res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Account not found with that email or username. Please check your spelling or register a new account.',
       });
       return;
     }
@@ -95,7 +126,7 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
     if (!isMatch) {
       res.status(401).json({
         success: false,
-        message: 'Invalid email or password.',
+        message: 'Incorrect password. Please try again.',
       });
       return;
     }

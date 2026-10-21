@@ -18,8 +18,8 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (name: string, email: string, password: string, role?: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string, role?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   switchDemo: (role: UserRole) => Promise<void>;
   updateUserContext: (data: Partial<User>) => void;
@@ -63,9 +63,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     verifyUser();
   }, [token]);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await api.post('/auth/login', { email, password });
+      const res = await api.post('/auth/login', { email: email.trim(), password: password.trim() });
       if (res.data.success) {
         const { user: loggedInUser, token: authToken } = res.data;
         setUser(loggedInUser);
@@ -73,13 +73,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('smart_pm_token', authToken);
         localStorage.setItem('smart_pm_user', JSON.stringify(loggedInUser));
         showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
-        return true;
+        return { success: true };
       }
-      return false;
+      return { success: false, error: 'Login failed' };
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.errors?.[0]?.message ||
+        'Login failed. Please check your credentials.';
       showToast(msg, 'error');
-      return false;
+      return { success: false, error: msg };
     }
   };
 
@@ -88,23 +91,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     email: string,
     password: string,
     role?: string
-  ): Promise<boolean> => {
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      const res = await api.post('/auth/register', { name, email, password, role });
+      const res = await api.post('/auth/register', {
+        name: name.trim(),
+        email: email.trim(),
+        password: password.trim(),
+        role,
+      });
       if (res.data.success) {
         const { user: registeredUser, token: authToken } = res.data;
         setUser(registeredUser);
         setToken(authToken);
         localStorage.setItem('smart_pm_token', authToken);
         localStorage.setItem('smart_pm_user', JSON.stringify(registeredUser));
-        showToast('Registration successful! Welcome to Smart PM.', 'success');
-        return true;
+        showToast('Registration successful! Welcome to Project X.', 'success');
+        return { success: true };
       }
-      return false;
+      return { success: false, error: 'Registration failed' };
     } catch (err: any) {
-      const msg = err.response?.data?.message || 'Registration failed.';
+      const msg =
+        err.response?.data?.message ||
+        err.response?.data?.errors?.[0]?.message ||
+        'Registration failed.';
       showToast(msg, 'error');
-      return false;
+      return { success: false, error: msg };
     }
   };
 

@@ -369,14 +369,28 @@ class ResilientDataStore {
     return rest;
   }
 
-  public async findUserByEmail(email: string, includePassword = true) {
-    const norm = email.toLowerCase().trim();
+  public async findUserByEmail(emailOrName: string, includePassword = true) {
+    const norm = (emailOrName || '').toLowerCase().trim();
     if (this.isMongoReady()) {
-      const q = User.findOne({ email: norm });
+      const q = User.findOne({
+        $or: [
+          { email: norm },
+          { email: { $regex: `^${norm}@`, $options: 'i' } },
+          { name: { $regex: norm, $options: 'i' } },
+          { role: norm },
+        ],
+      });
       if (includePassword) q.select('+passwordHash');
       return await q;
     }
-    const found = this.memUsers.find((u) => u.email.toLowerCase() === norm);
+    const found = this.memUsers.find(
+      (u) =>
+        u.email.toLowerCase() === norm ||
+        u.email.toLowerCase().split('@')[0] === norm ||
+        u.name.toLowerCase() === norm ||
+        u.name.toLowerCase().includes(norm) ||
+        u.role.toLowerCase() === norm
+    );
     if (!found) return null;
     if (includePassword) return found;
     const { passwordHash, ...rest } = found;

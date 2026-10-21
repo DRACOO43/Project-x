@@ -12,10 +12,12 @@ export const validate = (validations: ValidationChain[]) => {
       return next();
     }
 
+    const errArray = errors.array();
+    const firstMsg = errArray[0]?.msg || 'Validation failed';
     res.status(400).json({
       success: false,
-      message: 'Validation failed',
-      errors: errors.array().map((err: any) => ({
+      message: firstMsg,
+      errors: errArray.map((err: any) => ({
         field: err.path || err.param,
         message: err.msg,
       })),
