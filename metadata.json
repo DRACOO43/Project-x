@@ -1,0 +1,6 @@
+{
+  "name": "Smart Platform for Project Management",
+  "description": "A centralized, full-stack MERN platform for managing projects, organizing tasks, collaborating with team members, tracking progress, and generating analytics reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
